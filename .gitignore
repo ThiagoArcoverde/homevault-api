@@ -1,0 +1,17 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# .NET build output
+**/bin/
+**/obj/
+
+# User-specific application data
+**/appsettings.Local.json
+
+# Logs
+*.log
+
+# Docker
+.docker/
