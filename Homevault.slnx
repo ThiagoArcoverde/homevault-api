@@ -1,3 +1,6 @@
 <Solution>
   <Project Path="Homevault-api/Homevault-api.csproj" />
+  <Project Path="Homevault.Application/Homevault.Application.csproj" />
+  <Project Path="Homevault.Domain/Homevault.Domain.csproj" />
+  <Project Path="Homevault.Infrastructure/Homevault.Infrastructure.csproj" />
 </Solution>

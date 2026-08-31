@@ -9,6 +9,13 @@
 
 # User-specific application data
 **/appsettings.Local.json
+**/appsettings.*.local.json
+**/appsettings.Production.json
+
+# Local databases
+**/*.db
+**/*.db-shm
+**/*.db-wal
 
 # Logs
 *.log
