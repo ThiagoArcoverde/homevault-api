@@ -67,6 +67,32 @@ dotnet ef database update `
 
 O arquivo do banco e seus arquivos auxiliares são ignorados pelo Git.
 
+## Coleta de clima
+
+A API consulta a temperatura e a umidade atuais de Maringá/PR usando o Open-Meteo
+e armazena uma medição no SQLite a cada 15 minutos. A primeira coleta é feita
+quando a API inicia. Se o provedor estiver indisponível, a falha é registrada e
+o coletor continua tentando no próximo intervalo.
+
+A localização, o intervalo e o timeout podem ser alterados em
+`Homevault-api/appsettings.json`, na seção `Weather`.
+
+Endpoints disponíveis:
+
+```http
+GET /api/v1/weather/current
+GET /api/v1/weather/history?page=1&pageSize=50
+GET /api/v1/weather/history?from=2026-01-01T00:00:00Z&to=2026-01-31T23:59:59Z
+```
+
+Depois de obter o código, aplique as migrations antes de executar a API:
+
+```powershell
+dotnet ef database update `
+  --project Homevault.Infrastructure/Homevault.Infrastructure.csproj `
+  --startup-project Homevault-api/Homevault-api.csproj
+```
+
 ## Endpoints atuais
 
 ### Health check

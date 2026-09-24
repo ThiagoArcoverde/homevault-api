@@ -2,8 +2,11 @@ using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Homevault.Application.Homes;
+using Homevault.Application.Weather;
 using Homevault_api.ExceptionHandling;
+using Homevault_api.Weather;
 using Homevault.Infrastructure;
+using Homevault.Infrastructure.Weather;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +20,18 @@ builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddScoped<CreateHome>();
+builder.Services.AddScoped<CollectWeather>();
+builder.Services.AddScoped<GetWeather>();
+builder.Services.AddOptions<WeatherOptions>()
+    .Bind(builder.Configuration.GetSection(WeatherOptions.SectionName))
+    .Validate(options => options.CollectionIntervalMinutes > 0,
+        "O intervalo de coleta deve ser maior que zero.")
+    .Validate(options => options.RequestTimeoutSeconds > 0,
+        "O timeout do provedor deve ser maior que zero.")
+    .Validate(options => options.RetentionMonths > 0,
+        "O período de retenção deve ser maior que zero.")
+    .ValidateOnStart();
+builder.Services.AddHostedService<WeatherCollectorBackgroundService>();
 builder.Services.AddInfrastructure(
     builder.Configuration.GetConnectionString("Homevault")
     ?? "Data Source=homevault.db");

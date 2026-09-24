@@ -19,7 +19,7 @@
 
 ## API
 
-- Usar versionamento por URL no formato `/api/v1/...`.
+- Usar versionamento por URL no formato `/api/v1/...`. 
 - Usar `ProblemDetails` para respostas de erro.
 - Usar FluentValidation para validar entradas.
 - Documentar endpoints públicos no Swagger.
@@ -40,7 +40,7 @@
 - Não incluir caminhos locais, dados pessoais ou credenciais nas instruções, logs ou exemplos.
 - Verificar o `.gitignore` antes de adicionar arquivos de configuração ou banco.
 
-## Qualidade e testes
+## Qualidade e testesb 
 
 - Fazer alterações pequenas, focadas e compatíveis com os padrões existentes.
 - Reutilizar abstrações existentes antes de criar novas dependências.

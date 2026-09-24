@@ -3,6 +3,7 @@ using System;
 using Homevault.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Homevault.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(HomeDbContext))]
-    partial class HomeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924022829_AddWeatherObservations")]
+    partial class AddWeatherObservations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
@@ -48,10 +51,6 @@ namespace Homevault.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CollectedAt")
-                        .HasConversion(
-                            new ValueConverter<DateTimeOffset, DateTime>(
-                                value => value.UtcDateTime,
-                                value => new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc))))
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Latitude")
@@ -63,10 +62,6 @@ namespace Homevault.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("ObservedAt")
-                        .HasConversion(
-                            new ValueConverter<DateTimeOffset, DateTime>(
-                                value => value.UtcDateTime,
-                                value => new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc))))
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("RelativeHumidity")
