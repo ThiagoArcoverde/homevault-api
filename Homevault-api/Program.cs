@@ -14,6 +14,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("HomevaultWeb", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://homevault.home.arpa:5173",
+                "http://homevault.home.com:5173",
+                "http://homevault.home:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateHomeValidator>();
 builder.Services.AddHealthChecks();
@@ -69,11 +83,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-if (!app.Environment.IsEnvironment("Local"))
+if (app.Environment.IsProduction())
 {
     app.UseHttpsRedirection();
 }
 
+app.UseCors("HomevaultWeb");
 app.UseAuthorization();
 
 app.MapControllers();
