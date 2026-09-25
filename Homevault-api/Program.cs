@@ -21,9 +21,14 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5174",
                 "http://homevault.home.arpa:5173",
                 "http://homevault.home.com:5173",
-                "http://homevault.home:5173")
+                "http://homevault.home:5173",
+                "http://homevault.home.arpa",
+                "http://homevault.home.com",
+                "http://homevault.home")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
