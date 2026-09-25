@@ -32,11 +32,11 @@ git clone https://github.com/ThiagoArcoverde/homevault-api.git
 cd homevault-api
 ```
 
-Restaure as dependências e execute a API:
+Restaure as dependências e execute a API no perfil de desenvolvimento:
 
 ```powershell
 dotnet restore
-dotnet run --project Homevault-api/Homevault-api.csproj
+dotnet run --project Homevault-api/Homevault-api.csproj --launch-profile dev
 ```
 
 A documentação do Swagger ficará disponível em:
@@ -47,7 +47,17 @@ https://localhost:<porta>/swagger
 
 ## Banco de dados
 
-A aplicação utiliza SQLite por padrão. A configuração está em `Homevault-api/appsettings.json`:
+A aplicação utiliza SQLite. O perfil `dev` usa o banco `homevault-dev.db`,
+configurado em `Homevault-api/appsettings.Development.json`. O perfil `local`
+usa `homevault.db`, configurado em `Homevault-api/appsettings.json`.
+
+Para executar a API usando o banco local:
+
+```powershell
+dotnet run --project Homevault-api/Homevault-api.csproj --launch-profile local
+```
+
+A configuração base do SQLite é:
 
 ```json
 {
@@ -60,9 +70,24 @@ A aplicação utiliza SQLite por padrão. A configuração está em `Homevault-a
 Para criar ou atualizar o banco usando as migrations:
 
 ```powershell
+Push-Location Homevault-api
 dotnet ef database update `
-  --project Homevault.Infrastructure/Homevault.Infrastructure.csproj `
-  --startup-project Homevault-api/Homevault-api.csproj
+  --project ..\Homevault.Infrastructure\Homevault.Infrastructure.csproj `
+  --startup-project .\Homevault-api.csproj `
+  --connection "Data Source=homevault-dev.db"
+Pop-Location
+```
+
+O comando acima atualiza o banco de desenvolvimento. Para atualizar o banco
+usado pelo perfil `local`, execute sem o argumento de ambiente:
+
+```powershell
+Push-Location Homevault-api
+dotnet ef database update `
+  --project ..\Homevault.Infrastructure\Homevault.Infrastructure.csproj `
+  --startup-project .\Homevault-api.csproj `
+  --connection "Data Source=homevault.db"
+Pop-Location
 ```
 
 O arquivo do banco e seus arquivos auxiliares são ignorados pelo Git.
@@ -83,14 +108,6 @@ Endpoints disponíveis:
 GET /api/v1/weather/current
 GET /api/v1/weather/history?page=1&pageSize=50
 GET /api/v1/weather/history?from=2026-01-01T00:00:00Z&to=2026-01-31T23:59:59Z
-```
-
-Depois de obter o código, aplique as migrations antes de executar a API:
-
-```powershell
-dotnet ef database update `
-  --project Homevault.Infrastructure/Homevault.Infrastructure.csproj `
-  --startup-project Homevault-api/Homevault-api.csproj
 ```
 
 ## Endpoints atuais

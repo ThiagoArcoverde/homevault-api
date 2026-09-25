@@ -69,7 +69,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Local"))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 
