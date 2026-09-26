@@ -6,7 +6,9 @@ using Homevault.Application.Weather;
 using Homevault_api.ExceptionHandling;
 using Homevault_api.Weather;
 using Homevault.Infrastructure;
+using Homevault.Infrastructure.Persistence;
 using Homevault.Infrastructure.Weather;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -79,6 +81,23 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+var databaseConnectionStrings = new[]
+{
+    "Data Source=homevault.db",
+    "Data Source=homevault-dev.db"
+};
+
+foreach (var connectionString in databaseConnectionStrings)
+{
+    var dbContextOptions = new DbContextOptionsBuilder<HomeDbContext>()
+        .UseSqlite(connectionString, sqliteOptions =>
+            sqliteOptions.MigrationsAssembly(typeof(HomeDbContext).Assembly.FullName))
+        .Options;
+
+    await using var dbContext = new HomeDbContext(dbContextOptions);
+    dbContext.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
