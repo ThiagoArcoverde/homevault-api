@@ -3,6 +3,7 @@ using System;
 using Homevault.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Homevault.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(HomeDbContext))]
-    partial class HomeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260926010915_AddWeatherCondition")]
+    partial class AddWeatherCondition
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");

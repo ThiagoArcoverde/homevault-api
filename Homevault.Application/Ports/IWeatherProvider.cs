@@ -1,3 +1,5 @@
+using Homevault.Domain.Entities;
+
 namespace Homevault.Application.Ports;
 
 public interface IWeatherProvider
@@ -17,4 +19,6 @@ public sealed record WeatherLocation(
 public sealed record WeatherReading(
     decimal TemperatureCelsius,
     decimal RelativeHumidity,
+    WeatherCondition Condition,
+    bool IsDay,
     DateTimeOffset ObservedAt);

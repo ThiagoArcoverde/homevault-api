@@ -13,6 +13,8 @@ public sealed class WeatherObservation
         decimal longitude,
         decimal temperatureCelsius,
         decimal relativeHumidity,
+        WeatherCondition condition,
+        bool isDay,
         DateTimeOffset observedAt,
         DateTimeOffset collectedAt)
     {
@@ -40,6 +42,8 @@ public sealed class WeatherObservation
         Longitude = longitude;
         TemperatureCelsius = temperatureCelsius;
         RelativeHumidity = relativeHumidity;
+        Condition = condition;
+        IsDay = isDay;
         ObservedAt = observedAt;
         CollectedAt = collectedAt;
     }
@@ -57,6 +61,10 @@ public sealed class WeatherObservation
     public decimal TemperatureCelsius { get; private set; }
 
     public decimal RelativeHumidity { get; private set; }
+
+    public WeatherCondition Condition { get; private set; }
+
+    public bool IsDay { get; private set; }
 
     public DateTimeOffset ObservedAt { get; private set; }
 

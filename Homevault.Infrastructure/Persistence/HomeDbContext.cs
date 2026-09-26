@@ -47,6 +47,12 @@ public class HomeDbContext(DbContextOptions<HomeDbContext> options) : DbContext(
             entity.Property(observation => observation.RelativeHumidity)
                 .HasPrecision(5, 2)
                 .IsRequired();
+            entity.Property(observation => observation.Condition)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+            entity.Property(observation => observation.IsDay)
+                .IsRequired();
             entity.Property(observation => observation.ObservedAt)
                 .HasConversion(dateTimeOffsetToUtcConverter)
                 .IsRequired();

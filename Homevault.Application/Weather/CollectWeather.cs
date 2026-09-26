@@ -19,6 +19,8 @@ public sealed class CollectWeather(
             location.Longitude,
             reading.TemperatureCelsius,
             reading.RelativeHumidity,
+            reading.Condition,
+            reading.IsDay,
             reading.ObservedAt,
             DateTimeOffset.UtcNow);
 

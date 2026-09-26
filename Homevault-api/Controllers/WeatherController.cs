@@ -87,6 +87,8 @@ public sealed record WeatherObservationResponse(
     string State,
     decimal TemperatureCelsius,
     decimal RelativeHumidity,
+    string Condition,
+    bool IsDay,
     DateTimeOffset ObservedAt,
     DateTimeOffset CollectedAt)
 {
@@ -98,6 +100,8 @@ public sealed record WeatherObservationResponse(
             observation.State,
             observation.TemperatureCelsius,
             observation.RelativeHumidity,
+            observation.Condition.ToString(),
+            observation.IsDay,
             observation.ObservedAt,
             observation.CollectedAt);
     }
