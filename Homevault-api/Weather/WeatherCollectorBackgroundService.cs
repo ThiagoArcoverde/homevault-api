@@ -16,13 +16,18 @@ public sealed class WeatherCollectorBackgroundService(
     {
         var interval = TimeSpan.FromMinutes(options.Value.CollectionIntervalMinutes);
 
-        using var timer = new PeriodicTimer(interval);
-
-        await CollectAsync(stoppingToken);
-
-        while (await timer.WaitForNextTickAsync(stoppingToken))
+        while (!stoppingToken.IsCancellationRequested)
         {
             await CollectAsync(stoppingToken);
+
+            try
+            {
+                await Task.Delay(interval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
     }
 
