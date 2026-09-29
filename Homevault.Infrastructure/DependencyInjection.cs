@@ -17,6 +17,7 @@ public static class DependencyInjection
             options.UseSqlite(connectionString));
         services.AddScoped<IHomeRepository, HomeRepository>();
         services.AddScoped<IWeatherObservationRepository, WeatherObservationRepository>();
+        services.AddScoped<IShoppingRepository, ShoppingRepository>();
         services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<WeatherOptions>>().Value;

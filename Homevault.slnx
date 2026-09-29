@@ -3,4 +3,5 @@
   <Project Path="Homevault.Application/Homevault.Application.csproj" />
   <Project Path="Homevault.Domain/Homevault.Domain.csproj" />
   <Project Path="Homevault.Infrastructure/Homevault.Infrastructure.csproj" />
+  <Project Path="Homevault.Tests/Homevault.Tests.csproj" />
 </Solution>

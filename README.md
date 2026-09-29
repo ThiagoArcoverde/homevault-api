@@ -92,6 +92,75 @@ Pop-Location
 
 O arquivo do banco e seus arquivos auxiliares são ignorados pelo Git.
 
+Na inicialização, a API aplica as migrations **somente** ao banco configurado em
+`ConnectionStrings:Homevault`. A migration `AddShoppingList` cria uma casa padrão
+de ID fixo (configurado em `ShoppingList:HomeId`, podendo ser sobrescrito por
+configuração segura da instalação) e nove categorias com IDs estáveis e ordem de exibição definida:
+Hortifruti, Mercearia, Açougue e Peixaria, Higiene e Beleza, Laticínios,
+Limpeza, Bebida, Padaria e Confeitaria e Outros. Não são criados produtos de exemplo.
+Categorias usadas por itens devem ser desativadas (não excluídas); os itens
+existentes continuam exibindo o nome da categoria desativada.
+
+## Lista de compras
+
+Todos os endpoints usam JSON e o prefixo `/api/v1/shopping-list`:
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| GET | `/categories` | Categorias ativas em ordem de exibição |
+| GET | `/items?search=&categoryId=&page=1&pageSize=4` | Página filtrada, metadados e resumo global |
+| GET | `/items/{id}` | Item individual (destino do `Location` de criação) |
+| POST | `/items` | Cria item; retorna 201 e `Location` |
+| PATCH | `/items/{id}` | Atualiza parcialmente nome, quantidade, categoria e/ou comprado |
+| DELETE | `/items/{id}` | Remove item; retorna 204 |
+| DELETE | `/items?purchased=true` | Remove apenas comprados; retorna quantidade removida e resumo |
+| GET | `/export-data` | Snapshot JSON completo, resumo e `generatedAtUtc` |
+
+O POST recebe `name` (texto de 1 a 80 caracteres após trim), `quantity` (inteiro
+de 1 a 999) e `categoryId` (UUID de categoria ativa). O PATCH aceita um ou mais
+dos campos `name`, `quantity`, `categoryId` e `purchased`; campos omitidos
+permanecem inalterados. IDs, estado comprado inicial e timestamps são gerados
+pelo servidor. Nomes duplicados não são mesclados.
+
+A busca por nome ignora maiúsculas/minúsculas, mas distingue acentos. A ordem é
+`createdAtUtc`, depois `id`; `page` começa em 1, `pageSize` vai de 1 a 100,
+e páginas acima do final retornam a última página. Mesmo com filtros ou sem
+resultados, `summary` descreve toda a casa. A resposta de `/export-data`
+inclui todos os itens, independentemente de filtro/página: CSV, PDF e Markdown
+continuam sendo gerados no navegador. Entradas inválidas retornam 400 em
+`application/problem+json`; itens ausentes ou de outra casa retornam 404.
+Os contratos e respostas também estão publicados no Swagger do perfil dev.
+
+O frontend deve carregar `/categories` para o formulário **e** o filtro, usar
+`categoryId` nas requisições e carregar `/items` ao entrar/voltar à tela e
+após mutações. Não utilizar fixtures se a API estiver indisponível. Este
+repositório contém apenas o backend: a integração React deve ser realizada
+no repositório do frontend.
+
+### Uso privado e CORS
+
+Ainda não há autenticação nem vínculo de usuários a casas. A lista usa apenas
+a casa configurada no backend; o cliente não informa `householdId`. O valor
+padrão corresponde à casa criada na migration; outra casa configurada precisa
+existir no banco e possuir suas próprias categorias.
+**Não exponha esta API à internet nem configure encaminhamento de portas no
+roteador.** Autenticação/autorização por vínculo com a casa são pré-requisitos
+para uso público ou multiusuário/multicasa.
+
+As origens permitidas para o frontend estão em `Cors:FrontendOrigins` nos
+arquivos `appsettings.json` e `appsettings.Development.json` (Vite local e
+nomes LAN existentes). Configure apenas origens efetivamente usadas pela
+instalação, ou use proxy reverso de mesma origem; não habilite `*` com
+credenciais. A API não determina endereço nem porta do frontend.
+
+Para validar o backend:
+
+```powershell
+dotnet build
+dotnet test Homevault.Tests/Homevault.Tests.csproj
+dotnet format Homevault.slnx --verify-no-changes
+```
+
 ## Coleta de clima
 
 A API consulta a temperatura e a umidade atuais de Maringá/PR usando o Open-Meteo

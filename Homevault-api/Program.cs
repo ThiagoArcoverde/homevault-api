@@ -2,8 +2,11 @@ using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Homevault.Application.Homes;
+using Homevault.Application.Ports;
+using Homevault.Application.Shopping;
 using Homevault.Application.Weather;
 using Homevault_api.ExceptionHandling;
+using Homevault_api.Controllers;
 using Homevault_api.Weather;
 using Homevault.Infrastructure;
 using Homevault.Infrastructure.Persistence;
@@ -20,29 +23,25 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("HomevaultWeb", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                "http://localhost:5174",
-                "http://127.0.0.1:5174",
-                "http://homevault.home.arpa:5173",
-                "http://homevault.home.com:5173",
-                "http://homevault.home:5173",
-                "http://homevault.home.arpa",
-                "http://homevault.home.com",
-                "http://homevault.home")
+        policy.WithOrigins(builder.Configuration.GetSection("Cors:FrontendOrigins").Get<string[]>() ?? [])
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<CreateHomeValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateShoppingItemValidator>();
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddScoped<CreateHome>();
 builder.Services.AddScoped<CollectWeather>();
 builder.Services.AddScoped<GetWeather>();
+var shoppingHomeId = builder.Configuration.GetValue<Guid>("ShoppingList:HomeId");
+if (shoppingHomeId == Guid.Empty)
+    throw new InvalidOperationException("ShoppingList:HomeId deve conter o UUID da casa configurada.");
+builder.Services.AddScoped(provider =>
+    new ShoppingList(provider.GetRequiredService<IShoppingRepository>(), shoppingHomeId));
 builder.Services.AddOptions<WeatherOptions>()
     .Bind(builder.Configuration.GetSection(WeatherOptions.SectionName))
     .Validate(options => options.CollectionIntervalMinutes > 0,
@@ -82,21 +81,10 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-var databaseConnectionStrings = new[]
+await using (var scope = app.Services.CreateAsyncScope())
 {
-    "Data Source=homevault.db",
-    "Data Source=homevault-dev.db"
-};
-
-foreach (var connectionString in databaseConnectionStrings)
-{
-    var dbContextOptions = new DbContextOptionsBuilder<HomeDbContext>()
-        .UseSqlite(connectionString, sqliteOptions =>
-            sqliteOptions.MigrationsAssembly(typeof(HomeDbContext).Assembly.FullName))
-        .Options;
-
-    await using var dbContext = new HomeDbContext(dbContextOptions);
-    dbContext.Database.Migrate();
+    var dbContext = scope.ServiceProvider.GetRequiredService<HomeDbContext>();
+    await dbContext.Database.MigrateAsync();
 }
 
 // Configure the HTTP request pipeline.
@@ -118,3 +106,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;

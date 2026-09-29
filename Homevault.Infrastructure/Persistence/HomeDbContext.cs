@@ -10,6 +10,10 @@ public class HomeDbContext(DbContextOptions<HomeDbContext> options) : DbContext(
 
     public DbSet<WeatherObservation> WeatherObservations => Set<WeatherObservation>();
 
+    public DbSet<ShoppingCategory> ShoppingCategories => Set<ShoppingCategory>();
+
+    public DbSet<ShoppingItem> ShoppingItems => Set<ShoppingItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var dateTimeOffsetToUtcConverter = new ValueConverter<DateTimeOffset, DateTime>(
@@ -24,6 +28,40 @@ public class HomeDbContext(DbContextOptions<HomeDbContext> options) : DbContext(
                 .HasMaxLength(200);
             entity.Property(home => home.CreatedAt)
                 .IsRequired();
+        });
+
+        modelBuilder.Entity<ShoppingCategory>(entity =>
+        {
+            entity.HasKey(category => category.Id);
+            entity.HasAlternateKey(category => new { category.HomeId, category.Id });
+            entity.HasOne(category => category.Home).WithMany().HasForeignKey(category => category.HomeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(category => category.Name).IsRequired().HasMaxLength(40);
+            entity.Property(category => category.IsActive).IsRequired();
+            entity.HasIndex(category => new { category.HomeId, category.SortOrder, category.Name });
+            entity.ToTable(table => table.HasCheckConstraint("CK_ShoppingCategory_Name", "length(trim(Name)) BETWEEN 1 AND 40"));
+        });
+
+        modelBuilder.Entity<ShoppingItem>(entity =>
+        {
+            entity.HasKey(item => item.Id);
+            entity.HasOne(item => item.Home).WithMany().HasForeignKey(item => item.HomeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(item => item.Category).WithMany()
+                .HasForeignKey(item => new { item.HomeId, item.CategoryId })
+                .HasPrincipalKey(category => new { category.HomeId, category.Id })
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(item => item.Name).IsRequired().HasMaxLength(80);
+            entity.Property(item => item.Purchased).IsRequired().HasDefaultValue(false);
+            entity.Property(item => item.CreatedAtUtc).HasConversion(dateTimeOffsetToUtcConverter).IsRequired();
+            entity.Property(item => item.UpdatedAtUtc).HasConversion(dateTimeOffsetToUtcConverter).IsRequired();
+            entity.HasIndex(item => new { item.HomeId, item.CreatedAtUtc, item.Id });
+            entity.HasIndex(item => new { item.HomeId, item.Purchased });
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_ShoppingItem_Name", "length(trim(Name)) BETWEEN 1 AND 80");
+                table.HasCheckConstraint("CK_ShoppingItem_Quantity", "Quantity BETWEEN 1 AND 999");
+            });
         });
 
         modelBuilder.Entity<WeatherObservation>(entity =>
