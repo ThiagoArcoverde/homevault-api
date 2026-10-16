@@ -95,9 +95,11 @@ O arquivo do banco e seus arquivos auxiliares são ignorados pelo Git.
 Na inicialização, a API aplica as migrations **somente** ao banco configurado em
 `ConnectionStrings:Homevault`. A migration `AddShoppingList` cria uma casa padrão
 de ID fixo (configurado em `ShoppingList:HomeId`, podendo ser sobrescrito por
-configuração segura da instalação) e nove categorias com IDs estáveis e ordem de exibição definida:
+configuração segura da instalação); a migration `AddShoppingCategoriesFriosAndPet`
+completa suas onze categorias com IDs estáveis e ordem de exibição definida:
 Hortifruti, Mercearia, Açougue e Peixaria, Higiene e Beleza, Laticínios,
-Limpeza, Bebida, Padaria e Confeitaria e Outros. Não são criados produtos de exemplo.
+Limpeza, Bebida, Padaria e Confeitaria, Frios e embutidos, Pet e Outros.
+Não são criados produtos de exemplo.
 Categorias usadas por itens devem ser desativadas (não excluídas); os itens
 existentes continuam exibindo o nome da categoria desativada.
 

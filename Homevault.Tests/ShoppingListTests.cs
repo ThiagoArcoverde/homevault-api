@@ -52,9 +52,18 @@ public sealed class ShoppingListTests
         using var client = factory.CreateClient();
         var categories = await client.GetFromJsonAsync<ShoppingCategoriesResponse>("/api/v1/shopping-list/categories");
         Assert.NotNull(categories);
-        Assert.Equal(9, categories.Categories.Count);
+        Assert.Equal(11, categories.Categories.Count);
         Assert.Equal("Hortifruti", categories.Categories[0].Name);
         Assert.Equal(10, categories.Categories[0].SortOrder);
+        Assert.Equal(new[] { "Frios e embutidos", "Pet", "Outros" },
+            categories.Categories.Skip(8).Select(c => c.Name));
+        Assert.Equal(new[] { 90, 100, 110 },
+            categories.Categories.Skip(8).Select(c => c.SortOrder));
+        Assert.Equal(new[]
+        {
+            new Guid("10000000-0000-4000-8000-000000000010"),
+            new Guid("10000000-0000-4000-8000-000000000011")
+        }, categories.Categories.Skip(8).Take(2).Select(c => c.Id));
 
         var category = categories.Categories[0];
         var created = await client.PostAsJsonAsync("/api/v1/shopping-list/items",
