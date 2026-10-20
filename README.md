@@ -174,18 +174,49 @@ Os endpoints usam JSON camelCase e o prefixo `/api/v1/tasks`:
 | PATCH | `/{id}` | 200 com o afazer atualizado parcialmente |
 | DELETE | `/{id}` | 204 sem corpo |
 
-Cada afazer tem exatamente `id` (UUID), `title`, `meta`, `assignee` e `done`.
-O POST recebe `title`, `meta` e `assignee`, sendo os dois últimos opcionais
-(omitidos ou nulos usam `"Sem prazo"` e `"Todos"`). O servidor gera o ID e
-inicia `done=false`. Os textos são aparados com trim: `title` deve ter de
+Cada afazer tem exatamente `id` (UUID), `title`, `meta`, `assignee`, `done` e
+`repeatsDaily` (boolean). O POST recebe `title`, `meta`, `assignee` e
+`repeatsDaily`, sendo os três últimos opcionais. `repeatsDaily` usa `false`
+por padrão; `meta` e `assignee` omitidos ou nulos usam `"Sem prazo"` e
+`"Todos"`. O servidor gera o ID e inicia `done=false`.
+Os textos são aparados com trim: `title` deve ter de
 1 a 120 caracteres, `meta` de 1 a 60 e `assignee` de 1 a 40.
 
-O PATCH aceita apenas `title`, `meta`, `assignee` e `done`; campos omitidos
-permanecem inalterados. Patch vazio, campos desconhecidos, valores nulos
+O PATCH aceita apenas `title`, `meta`, `assignee`, `done` e `repeatsDaily`;
+campos omitidos permanecem inalterados. Patch vazio, campos desconhecidos, valores nulos
 explícitos e textos inválidos retornam 400. IDs malformados também retornam
 400; PATCH e DELETE de afazeres inexistentes ou de outra casa retornam 404.
 Os erros usam ProblemDetails/ValidationProblem em `application/problem+json`.
 O `Location` identifica o recurso para PATCH/DELETE; não há GET individual.
+
+### Repetição diária
+
+Com `repeatsDaily=false`, a conclusão continua persistente. Com
+`repeatsDaily=true`, `done` é calculado na leitura: só é `true` se a conclusão
+ocorreu na mesma data local de agora. Ao mudar o dia, o afazer volta a pendente,
+sem job em background e sem alterar o banco durante o GET. O fuso é obtido de
+`Weather:Location:TimeZone` (configuração padrão `America/Sao_Paulo`); um fuso
+inválido impede a inicialização. A conversão usa as regras de horário de verão,
+não um deslocamento UTC fixo nem uma janela de 24 horas. Se a meia-noite for
+pulada pelo horário de verão, o reset ocorre no primeiro instante da nova data.
+
+PATCH `done=true` grava o instante UTC atual em `CompletedAtUtc`;
+`done=false` limpa esse instante. Ele é interno e não aparece no JSON.
+`repeatsDaily` aceita apenas booleanos; `null`, strings e números retornam 400
+no POST e no PATCH.
+
+Ao **alterar** `repeatsDaily` sem informar `done`, preserva-se o estado visível:
+ativar a recorrência de um afazer concluído (mesmo há vários dias) mantém a
+conclusão, registrando agora como conclusão do dia; desativá-la em um afazer
+diário concluído mantém a conclusão persistente. Desativá-la em um afazer já
+vencido mantém pendente e limpa a conclusão antiga. Reenviar o mesmo valor
+de `repeatsDaily` não renova a conclusão. Se ambos vierem no PATCH, `done`
+tem precedência. Alterar apenas textos nunca renova a conclusão.
+
+A migration `AddTaskRecurrence` adiciona `RepeatsDaily=false` e
+`CompletedAtUtc` opcional. Conclusões anteriores recebem o instante UTC da
+migration; afazeres pendentes ficam com o instante nulo. IDs, ordem e conteúdo
+do seed e dos afazeres existentes são preservados.
 
 A migration `AddHomeTasks` cria a tabela e insere uma única vez os oito
 afazeres iniciais, com UUIDs fixos, na ordem da tela; apenas regar as plantas

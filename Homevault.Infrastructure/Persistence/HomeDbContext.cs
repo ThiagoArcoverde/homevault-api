@@ -75,6 +75,8 @@ public class HomeDbContext(DbContextOptions<HomeDbContext> options) : DbContext(
             entity.Property(task => task.Meta).IsRequired().HasMaxLength(60);
             entity.Property(task => task.Assignee).IsRequired().HasMaxLength(40);
             entity.Property(task => task.Done).IsRequired().HasDefaultValue(false);
+            entity.Property(task => task.RepeatsDaily).IsRequired().HasDefaultValue(false);
+            entity.Property(task => task.CompletedAtUtc).HasConversion(dateTimeOffsetToUtcConverter);
             entity.HasIndex(task => new { task.HomeId, task.SortOrder }).IsUnique();
             entity.ToTable(table =>
             {

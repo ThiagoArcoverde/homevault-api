@@ -13,6 +13,7 @@ using Homevault.Infrastructure;
 using Homevault.Infrastructure.Persistence;
 using Homevault.Infrastructure.Weather;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,8 +44,12 @@ if (shoppingHomeId == Guid.Empty)
     throw new InvalidOperationException("ShoppingList:HomeId deve conter o UUID da casa configurada.");
 builder.Services.AddScoped(provider =>
     new ShoppingList(provider.GetRequiredService<IShoppingRepository>(), shoppingHomeId));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(provider => TimeZoneInfo.FindSystemTimeZoneById(
+    provider.GetRequiredService<IOptions<WeatherOptions>>().Value.Location.TimeZone));
 builder.Services.AddScoped(provider =>
-    new HomeTasks(provider.GetRequiredService<ITaskRepository>(), shoppingHomeId));
+    new HomeTasks(provider.GetRequiredService<ITaskRepository>(), shoppingHomeId,
+        provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<TimeZoneInfo>()));
 builder.Services.AddOptions<WeatherOptions>()
     .Bind(builder.Configuration.GetSection(WeatherOptions.SectionName))
     .Validate(options => options.CollectionIntervalMinutes > 0,
@@ -53,6 +58,9 @@ builder.Services.AddOptions<WeatherOptions>()
         "O timeout do provedor deve ser maior que zero.")
     .Validate(options => options.RetentionMonths > 0,
         "O período de retenção deve ser maior que zero.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Location.TimeZone) &&
+        TimeZoneInfo.TryFindSystemTimeZoneById(options.Location.TimeZone, out _),
+        "Weather:Location:TimeZone deve conter um fuso horário válido.")
     .ValidateOnStart();
 builder.Services.AddHostedService<WeatherCollectorBackgroundService>();
 builder.Services.AddInfrastructure(

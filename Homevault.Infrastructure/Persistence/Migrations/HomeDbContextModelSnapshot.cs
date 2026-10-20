@@ -124,6 +124,9 @@ namespace Homevault.Infrastructure.Persistence.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("Done")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -136,6 +139,11 @@ namespace Homevault.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(60)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("RepeatsDaily")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<long>("SortOrder")
                         .HasColumnType("INTEGER");
