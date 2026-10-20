@@ -67,3 +67,11 @@ dotnet ef migrations add NomeDaMigration `
   --startup-project Homevault-api
 ```
 - Seguir arquitetura hexagonal; manter domínio e aplita 49 gracação desacoplados de ASP.NET Core, EF Core e SQLite; usar ProblemDetails, FluentValidation e versionamento por URL.
+## Trabalho em conjunto com o front (homevault-web)
+
+- O front fica em `C:\Users\Usuário\source\repos\Homevault-web` (repositório `homevault-web`). Funcionalidades que atravessam os dois repositórios são feitas em paralelo, uma sessão de agente por repositório.
+- O contrato HTTP (rotas `/api/v1/...`, campos e validações) é definido antes e enviado à sessão do outro lado. Alterações no contrato devem ser comunicadas, pois o PATCH rejeita campos desconhecidos (`JsonUnmappedMemberHandling.Disallow`).
+- Criar a branch a partir da `main` atualizada, validar (`dotnet build` e `dotnet test`) e commitar com Conventional Commits. Só fazer push e abrir PR depois da validação integrada e da aprovação do usuário.
+- Os PRs dos dois repositórios devem referenciar um ao outro. Mergear a API primeiro e o front depois. Após o merge, atualizar a `main` local e apagar as branches mergeadas.
+- Validação integrada: subir a API em porta separada (por exemplo `dotnet run -c Release --project Homevault-api --no-launch-profile --urls http://localhost:5199`) com banco temporário (`ConnectionStrings__Homevault`) e `Cors__FrontendOrigins__0=http://localhost:5173`, sem mexer na API de desenvolvimento do usuário na porta 5099. Usar Release porque as DLLs de Debug ficam bloqueadas pelo Visual Studio.
+- Depois do merge de mudanças com migration, o usuário precisa reiniciar a API do Visual Studio. A porta 5099 exige o ambiente `Development` para liberar o CORS do front.
