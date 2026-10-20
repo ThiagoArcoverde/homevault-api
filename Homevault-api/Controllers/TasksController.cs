@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Homevault_api.Controllers;
 
-public sealed record CreateTaskRequest(string? Title, string? Meta = null, string? Assignee = null);
+public sealed record CreateTaskRequest(string? Title, string? Meta = null, string? Assignee = null, bool RepeatsDaily = false);
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed class PatchTaskRequest
@@ -15,17 +15,20 @@ public sealed class PatchTaskRequest
     private string? meta;
     private string? assignee;
     private bool? done;
+    private bool? repeatsDaily;
 
     public string? Title { get => title; set { title = value; HasTitle = true; } }
     public string? Meta { get => meta; set { meta = value; HasMeta = true; } }
     public string? Assignee { get => assignee; set { assignee = value; HasAssignee = true; } }
     public bool? Done { get => done; set { done = value; HasDone = true; } }
+    public bool? RepeatsDaily { get => repeatsDaily; set { repeatsDaily = value; HasRepeatsDaily = true; } }
 
     internal bool HasTitle { get; private set; }
     internal bool HasMeta { get; private set; }
     internal bool HasAssignee { get; private set; }
     internal bool HasDone { get; private set; }
-    internal bool HasAnyField => HasTitle || HasMeta || HasAssignee || HasDone;
+    internal bool HasRepeatsDaily { get; private set; }
+    internal bool HasAnyField => HasTitle || HasMeta || HasAssignee || HasDone || HasRepeatsDaily;
 }
 
 public sealed class CreateTaskValidator : AbstractValidator<CreateTaskRequest>
@@ -50,6 +53,7 @@ public sealed class PatchTaskValidator : AbstractValidator<PatchTaskRequest>
         RuleFor(request => request.Assignee).Must(value => value is not null && value.Trim().Length is >= 1 and <= 40)
             .When(request => request.HasAssignee);
         RuleFor(request => request.Done).Must(value => value.HasValue).When(request => request.HasDone);
+        RuleFor(request => request.RepeatsDaily).Must(value => value.HasValue).When(request => request.HasRepeatsDaily);
     }
 }
 
@@ -70,7 +74,7 @@ public sealed class TasksController(HomeTasks tasks, IValidator<CreateTaskReques
     {
         var validation = await createValidator.ValidateAsync(request, token);
         if (!validation.IsValid) return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
-        var task = await tasks.CreateAsync(request.Title!, request.Meta, request.Assignee, token);
+        var task = await tasks.CreateAsync(request.Title!, request.Meta, request.Assignee, token, request.RepeatsDaily);
         return Created($"/api/v1/tasks/{task.Id}", task);
     }
 
@@ -83,7 +87,8 @@ public sealed class TasksController(HomeTasks tasks, IValidator<CreateTaskReques
         if (!Guid.TryParse(id, out var taskId)) return Problem(statusCode: 400, title: "ID inválido.");
         var validation = await patchValidator.ValidateAsync(request, token);
         if (!validation.IsValid) return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
-        var task = await tasks.UpdateAsync(taskId, new TaskPatch(request.Title, request.Meta, request.Assignee, request.Done), token);
+        var task = await tasks.UpdateAsync(taskId,
+            new TaskPatch(request.Title, request.Meta, request.Assignee, request.Done, request.RepeatsDaily), token);
         return task is null ? Problem(statusCode: 404, title: "Afazer não encontrado.") : Ok(task);
     }
 

@@ -41,6 +41,7 @@ public sealed class TaskValidationTests
     [InlineData("{\"meta\":null}")]
     [InlineData("{\"assignee\":null}")]
     [InlineData("{\"done\":null}")]
+    [InlineData("{\"repeatsDaily\":null}")]
     public void Patch_Rejects_Empty_Or_Explicit_Null(string json)
     {
         var patch = JsonSerializer.Deserialize<PatchTaskRequest>(json, JsonSerializerOptions.Web)!;
@@ -54,5 +55,33 @@ public sealed class TaskValidationTests
         Assert.True(patchValidator.Validate(patch).IsValid);
         Assert.Throws<JsonException>(() =>
             JsonSerializer.Deserialize<PatchTaskRequest>("{\"unknown\":true}", JsonSerializerOptions.Web));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Recurrence_Accepts_Both_Boolean_Values(bool repeatsDaily)
+    {
+        var json = JsonSerializer.Serialize(new { repeatsDaily });
+        var patch = JsonSerializer.Deserialize<PatchTaskRequest>(json, JsonSerializerOptions.Web)!;
+        Assert.True(patchValidator.Validate(patch).IsValid);
+        Assert.Equal(repeatsDaily, patch.RepeatsDaily);
+        var create = JsonSerializer.Deserialize<CreateTaskRequest>(
+            JsonSerializer.Serialize(new { title = "Titulo", repeatsDaily }), JsonSerializerOptions.Web)!;
+        Assert.True(createValidator.Validate(create).IsValid);
+        Assert.Equal(repeatsDaily, create.RepeatsDaily);
+        Assert.False(new CreateTaskRequest("Titulo").RepeatsDaily);
+    }
+
+    [Theory]
+    [InlineData("\"true\"")]
+    [InlineData("1")]
+    [InlineData("{}")]
+    public void Recurrence_Rejects_Non_Boolean_Json(string value)
+    {
+        Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<PatchTaskRequest>($"{{\"repeatsDaily\":{value}}}", JsonSerializerOptions.Web));
+        Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<CreateTaskRequest>($"{{\"title\":\"Titulo\",\"repeatsDaily\":{value}}}", JsonSerializerOptions.Web));
     }
 }

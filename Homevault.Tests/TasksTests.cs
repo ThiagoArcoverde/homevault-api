@@ -20,12 +20,13 @@ using Xunit;
 
 namespace Homevault.Tests;
 
-public sealed class TasksTests
+public sealed partial class TasksTests
 {
     private const string BaseUrl = "/api/v1/tasks";
     private const string Origin = "http://localhost:5173";
 
-    private sealed class ApiFactory(string? existingDatabase = null) : WebApplicationFactory<Program>
+    private sealed class ApiFactory(string? existingDatabase = null, TimeProvider? clock = null,
+        string timeZone = "America/Sao_Paulo") : WebApplicationFactory<Program>
     {
         private readonly string database = existingDatabase ??
             Path.Combine(Path.GetTempPath(), $"homevault-tasks-test-{Guid.NewGuid()}.db");
@@ -37,11 +38,17 @@ public sealed class TasksTests
                 configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:Homevault"] = $"Data Source={database};Pooling=False",
-                    ["Cors:FrontendOrigins:0"] = Origin
+                    ["Cors:FrontendOrigins:0"] = Origin,
+                    ["Weather:Location:TimeZone"] = timeZone
                 }));
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveHostedWeather();
+                if (clock is not null)
+                {
+                    services.RemoveAll<TimeProvider>();
+                    services.AddSingleton(clock);
+                }
                 services.RemoveAll<HomeDbContext>();
                 services.RemoveAll<DbContextOptions<HomeDbContext>>();
                 services.AddDbContext<HomeDbContext>(options =>
@@ -80,13 +87,14 @@ public sealed class TasksTests
         };
         for (var index = 0; index < items.Length; index++)
         {
-            Assert.Equal(new[] { "assignee", "done", "id", "meta", "title" },
+            Assert.Equal(new[] { "assignee", "done", "id", "meta", "repeatsDaily", "title" },
                 items[index].EnumerateObject().Select(property => property.Name).Order());
             Assert.Equal(new Guid($"30000000-0000-4000-8000-{index + 1:000000000000}"), items[index].GetProperty("id").GetGuid());
             Assert.Equal(expected[index].Item1, items[index].GetProperty("title").GetString());
             Assert.Equal(expected[index].Item2, items[index].GetProperty("meta").GetString());
             Assert.Equal(expected[index].Item3, items[index].GetProperty("assignee").GetString());
             Assert.Equal(expected[index].Item4, items[index].GetProperty("done").GetBoolean());
+            Assert.False(items[index].GetProperty("repeatsDaily").GetBoolean());
         }
         using var scope = factory.Services.CreateScope();
         var stored = await scope.ServiceProvider.GetRequiredService<HomeDbContext>().HomeTasks
@@ -116,6 +124,7 @@ public sealed class TasksTests
                 Assert.Equal("Sem prazo", created.Meta);
                 Assert.Equal("Todos", created.Assignee);
                 Assert.False(created.Done);
+                Assert.False(created.RepeatsDaily);
                 Assert.Equal($"{BaseUrl}/{id}", response.Headers.Location?.ToString());
                 var second = await client.PostAsJsonAsync(BaseUrl, new { title = "Nova tarefa", meta = " Hoje ", assignee = " Alex " });
                 Assert.Equal(HttpStatusCode.Created, second.StatusCode);
@@ -131,7 +140,7 @@ public sealed class TasksTests
                 updated = await client.PatchAsJsonAsync($"{BaseUrl}/{id}",
                     new { title = "  Editada  ", meta = "  Amanhã  ", assignee = "  Rafa  ", done = false });
                 Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
-                Assert.Equal(new TaskView(id, "Editada", "Amanhã", "Rafa", false),
+                Assert.Equal(new TaskView(id, "Editada", "Amanhã", "Rafa", false, false),
                     await updated.Content.ReadFromJsonAsync<TaskView>());
                 var list = (await client.GetFromJsonAsync<TasksResponse>(BaseUrl))!.Items;
                 Assert.Equal(new[] { id, deletedId }, list.TakeLast(2).Select(task => task.Id));
@@ -143,7 +152,7 @@ public sealed class TasksTests
             using var restartedClient = restarted.CreateClient();
             var persisted = (await restartedClient.GetFromJsonAsync<TasksResponse>(BaseUrl))!.Items;
             Assert.Equal(8, persisted.Count);
-            Assert.Equal(new TaskView(id, "Editada", "Amanhã", "Rafa", false), persisted[^1]);
+            Assert.Equal(new TaskView(id, "Editada", "Amanhã", "Rafa", false, false), persisted[^1]);
             Assert.DoesNotContain(persisted, task => task.Id == seedId || task.Id == deletedId);
         }
         finally
@@ -159,6 +168,10 @@ public sealed class TasksTests
     [InlineData("{\"meta\":null}")]
     [InlineData("{\"assignee\":null}")]
     [InlineData("{\"done\":null}")]
+    [InlineData("{\"repeatsDaily\":null}")]
+    [InlineData("{\"repeatsDaily\":\"true\"}")]
+    [InlineData("{\"repeatsDaily\":1}")]
+    [InlineData("{\"done\":true,\"completedAtUtc\":\"2026-10-20T00:00:00Z\"}")]
     [InlineData("{\"done\":\"true\"}")]
     [InlineData("{\"unknown\":true}")]
     [InlineData("{\"done\":true,\"unknown\":1}")]
@@ -261,6 +274,13 @@ public sealed class TasksTests
         Assert.True(paths.GetProperty(BaseUrl).TryGetProperty("post", out _));
         Assert.True(paths.GetProperty($"{BaseUrl}/{{id}}").TryGetProperty("patch", out _));
         Assert.True(paths.GetProperty($"{BaseUrl}/{{id}}").TryGetProperty("delete", out _));
+        var schemas = swagger.GetProperty("components").GetProperty("schemas");
+        foreach (var schema in new[] { "TaskView", "CreateTaskRequest", "PatchTaskRequest" })
+        {
+            Assert.True(schemas.GetProperty(schema).GetProperty("properties").TryGetProperty("repeatsDaily", out _));
+        }
+        Assert.Equal(new[] { "assignee", "done", "id", "meta", "repeatsDaily", "title" },
+            schemas.GetProperty("TaskView").GetProperty("properties").EnumerateObject().Select(property => property.Name).Order());
         foreach (var method in new[] { "PATCH", "DELETE" })
         {
             using var request = new HttpRequestMessage(HttpMethod.Options, $"{BaseUrl}/{Guid.NewGuid()}");
@@ -293,7 +313,7 @@ public sealed class TasksTests
         Assert.Equal(8, await db.HomeTasks.CountAsync());
         Assert.Equal("Preservado", (await db.ShoppingItems.AsNoTracking().SingleAsync()).Name);
         var task = await db.HomeTasks.OrderBy(item => item.SortOrder).FirstAsync();
-        task.Update("Editado", null, null, true);
+        task.Update("Editado", null, null, true, DateTimeOffset.UtcNow, TimeZoneInfo.Utc);
         await db.SaveChangesAsync();
         await db.Database.MigrateAsync();
         Assert.Equal("Editado", (await db.HomeTasks.AsNoTracking().SingleAsync(item => item.Id == task.Id)).Title);
