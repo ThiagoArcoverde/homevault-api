@@ -163,6 +163,42 @@ dotnet test Homevault.Tests/Homevault.Tests.csproj
 dotnet format Homevault.slnx --verify-no-changes
 ```
 
+## Afazeres pendentes
+
+Os endpoints usam JSON camelCase e o prefixo `/api/v1/tasks`:
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| GET | `/` | 200 `{ "items": [...] }`, em ordem de criação/seed |
+| POST | `/` | 201 com o afazer criado e `Location: /api/v1/tasks/{id}` |
+| PATCH | `/{id}` | 200 com o afazer atualizado parcialmente |
+| DELETE | `/{id}` | 204 sem corpo |
+
+Cada afazer tem exatamente `id` (UUID), `title`, `meta`, `assignee` e `done`.
+O POST recebe `title`, `meta` e `assignee`, sendo os dois últimos opcionais
+(omitidos ou nulos usam `"Sem prazo"` e `"Todos"`). O servidor gera o ID e
+inicia `done=false`. Os textos são aparados com trim: `title` deve ter de
+1 a 120 caracteres, `meta` de 1 a 60 e `assignee` de 1 a 40.
+
+O PATCH aceita apenas `title`, `meta`, `assignee` e `done`; campos omitidos
+permanecem inalterados. Patch vazio, campos desconhecidos, valores nulos
+explícitos e textos inválidos retornam 400. IDs malformados também retornam
+400; PATCH e DELETE de afazeres inexistentes ou de outra casa retornam 404.
+Os erros usam ProblemDetails/ValidationProblem em `application/problem+json`.
+O `Location` identifica o recurso para PATCH/DELETE; não há GET individual.
+
+A migration `AddHomeTasks` cria a tabela e insere uma única vez os oito
+afazeres iniciais, com UUIDs fixos, na ordem da tela; apenas regar as plantas
+começa concluído. O seed não usa `HasData`, portanto migrations posteriores
+não reescrevem edições do usuário. A ordem usa um `SortOrder` interno, não
+exposto no JSON; novos afazeres são acrescentados ao final e atualizações
+não mudam a posição. A atribuição da posição ocorre em transação SQLite.
+
+Os afazeres usam a mesma casa configurada em `ShoppingList:HomeId` e as mesmas
+restrições de uso privado descritas acima. O seed pertence à casa padrão;
+outras casas começam sem afazeres. A política CORS existente permite PATCH
+e DELETE nas origens autorizadas. Os contratos estão disponíveis no Swagger.
+
 ## Coleta de clima
 
 A API consulta a temperatura e a umidade atuais de Maringá/PR usando o Open-Meteo

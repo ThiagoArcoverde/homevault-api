@@ -113,6 +113,55 @@ namespace Homevault.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Homevault.Domain.Entities.TodoTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Assignee")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Done")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("HomeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Meta")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HomeId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("HomeTasks", t =>
+                        {
+                            t.HasCheckConstraint("CK_HomeTask_Assignee", "length(trim(Assignee)) BETWEEN 1 AND 40");
+
+                            t.HasCheckConstraint("CK_HomeTask_Meta", "length(trim(Meta)) BETWEEN 1 AND 60");
+
+                            t.HasCheckConstraint("CK_HomeTask_SortOrder", "SortOrder > 0");
+
+                            t.HasCheckConstraint("CK_HomeTask_Title", "length(trim(Title)) BETWEEN 1 AND 120");
+                        });
+                });
+
             modelBuilder.Entity("Homevault.Domain.Entities.WeatherObservation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -193,6 +242,17 @@ namespace Homevault.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("Home");
+                });
+
+            modelBuilder.Entity("Homevault.Domain.Entities.TodoTask", b =>
+                {
+                    b.HasOne("Homevault.Domain.Entities.Home", "Home")
+                        .WithMany()
+                        .HasForeignKey("HomeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Home");
                 });
