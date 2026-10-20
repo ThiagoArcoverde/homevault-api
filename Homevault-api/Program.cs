@@ -4,6 +4,7 @@ using FluentValidation.AspNetCore;
 using Homevault.Application.Homes;
 using Homevault.Application.Ports;
 using Homevault.Application.Shopping;
+using Homevault.Application.Tasks;
 using Homevault.Application.Weather;
 using Homevault_api.ExceptionHandling;
 using Homevault_api.Controllers;
@@ -42,6 +43,8 @@ if (shoppingHomeId == Guid.Empty)
     throw new InvalidOperationException("ShoppingList:HomeId deve conter o UUID da casa configurada.");
 builder.Services.AddScoped(provider =>
     new ShoppingList(provider.GetRequiredService<IShoppingRepository>(), shoppingHomeId));
+builder.Services.AddScoped(provider =>
+    new HomeTasks(provider.GetRequiredService<ITaskRepository>(), shoppingHomeId));
 builder.Services.AddOptions<WeatherOptions>()
     .Bind(builder.Configuration.GetSection(WeatherOptions.SectionName))
     .Validate(options => options.CollectionIntervalMinutes > 0,

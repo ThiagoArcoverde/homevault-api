@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IHomeRepository, HomeRepository>();
         services.AddScoped<IWeatherObservationRepository, WeatherObservationRepository>();
         services.AddScoped<IShoppingRepository, ShoppingRepository>();
+        services.AddScoped<ITaskRepository, TaskRepository>();
         services.AddHttpClient<IWeatherProvider, OpenMeteoWeatherProvider>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<WeatherOptions>>().Value;

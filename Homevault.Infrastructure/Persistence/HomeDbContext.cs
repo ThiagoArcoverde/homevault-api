@@ -14,6 +14,8 @@ public class HomeDbContext(DbContextOptions<HomeDbContext> options) : DbContext(
 
     public DbSet<ShoppingItem> ShoppingItems => Set<ShoppingItem>();
 
+    public DbSet<TodoTask> HomeTasks => Set<TodoTask>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var dateTimeOffsetToUtcConverter = new ValueConverter<DateTimeOffset, DateTime>(
@@ -61,6 +63,25 @@ public class HomeDbContext(DbContextOptions<HomeDbContext> options) : DbContext(
             {
                 table.HasCheckConstraint("CK_ShoppingItem_Name", "length(trim(Name)) BETWEEN 1 AND 80");
                 table.HasCheckConstraint("CK_ShoppingItem_Quantity", "Quantity BETWEEN 1 AND 999");
+            });
+        });
+
+        modelBuilder.Entity<TodoTask>(entity =>
+        {
+            entity.HasKey(task => task.Id);
+            entity.HasOne(task => task.Home).WithMany().HasForeignKey(task => task.HomeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(task => task.Title).IsRequired().HasMaxLength(120);
+            entity.Property(task => task.Meta).IsRequired().HasMaxLength(60);
+            entity.Property(task => task.Assignee).IsRequired().HasMaxLength(40);
+            entity.Property(task => task.Done).IsRequired().HasDefaultValue(false);
+            entity.HasIndex(task => new { task.HomeId, task.SortOrder }).IsUnique();
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_HomeTask_Title", "length(trim(Title)) BETWEEN 1 AND 120");
+                table.HasCheckConstraint("CK_HomeTask_Meta", "length(trim(Meta)) BETWEEN 1 AND 60");
+                table.HasCheckConstraint("CK_HomeTask_Assignee", "length(trim(Assignee)) BETWEEN 1 AND 40");
+                table.HasCheckConstraint("CK_HomeTask_SortOrder", "SortOrder > 0");
             });
         });
 
